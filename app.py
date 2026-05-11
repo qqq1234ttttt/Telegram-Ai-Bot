@@ -9,11 +9,10 @@ app = Flask(__name__)
 TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN")
 HF_API_KEY = os.environ.get("HF_API_KEY")
 
-print(f"TELEGRAM_TOKEN exists: {bool(TELEGRAM_TOKEN)}")
-print(f"HF_API_KEY exists: {bool(HF_API_KEY)}")
-
 bot = Bot(token=TELEGRAM_TOKEN)
-client = InferenceClient(provider="together", api_key=HF_API_KEY)
+
+# ✅ provider ကို sambanova သုံးမယ်
+client = InferenceClient(provider="sambanova", api_key=HF_API_KEY)
 user_conversations = {}
 
 def send_message(chat_id, text):
@@ -45,7 +44,7 @@ def webhook():
         
         try:
             completion = client.chat.completions.create(
-                model="meta-llama/Llama-3.2-1B-Instruct",
+                model="Meta/Llama-3.2-1B",  # ✅ sambanova က support လုပ်တယ်
                 messages=user_conversations[user_id],
                 max_tokens=300,
                 temperature=0.7,
