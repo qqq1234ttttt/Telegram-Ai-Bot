@@ -46,18 +46,18 @@ def webhook():
         user_conversations[user_id].append({"role": "user", "content": text})
         
         try:
-            completion = client.chat.completions.create(
-                model="google/gemma-2-2b-it",
-                messages=user_conversations[user_id],
-                max_tokens=300,
-                temperature=0.7,
-            )
-            reply = completion.choices[0].message["content"]
-            user_conversations[user_id].append({"role": "assistant", "content": reply})
-            send_message(chat_id, reply[:4000])
-        except Exception as e:
-            print(f"AI Error: {e}")
-            send_message(chat_id, f"AI အမှား: {str(e)}")
+        completion = client.chat.completions.create(
+        model="meta-llama/Llama-3.2-1B-Instruct",  # ဒီ model ကိုသုံးပါ
+        messages=user_conversations[user_id],
+        max_tokens=300,
+        temperature=0.7,
+    )
+    reply = completion.choices[0].message["content"]
+    user_conversations[user_id].append({"role": "assistant", "content": reply})
+    send_message(chat_id, reply[:4000])
+except Exception as e:
+    print(f"AI Error: {e}")
+    send_message(chat_id, f"AI အမှား: {str(e)}")
     
     return "ok"
 
