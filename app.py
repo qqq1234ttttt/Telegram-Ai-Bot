@@ -2,7 +2,7 @@ import os
 import requests
 from flask import Flask, request
 from telegram import Bot, Update
-from huggingface_hub import InferenceClient  # ✅ ဒါထည့်ဖို့လိုတယ်
+from huggingface_hub import InferenceClient
 
 app = Flask(__name__)
 
@@ -13,7 +13,7 @@ print(f"TELEGRAM_TOKEN exists: {bool(TELEGRAM_TOKEN)}")
 print(f"HF_API_KEY exists: {bool(HF_API_KEY)}")
 
 bot = Bot(token=TELEGRAM_TOKEN)
-client = InferenceClient(provider="hf-inference", api_key=HF_API_KEY)  # အခုအလုပ်လုပ်မယ်
+client = InferenceClient(provider="hf-inference", api_key=HF_API_KEY)
 user_conversations = {}
 
 def send_message(chat_id, text):
@@ -44,18 +44,18 @@ def webhook():
         user_conversations[user_id].append({"role": "user", "content": text})
         
         try:
-    completion = client.chat.completions.create(
-        model="google/gemma-2-2b-it",  # ဒီ model ကို သုံးပါ
-        messages=user_conversations[user_id],
-        max_tokens=300,
-        temperature=0.7,
-    )
-    reply = completion.choices[0].message["content"]
-    user_conversations[user_id].append({"role": "assistant", "content": reply})
-    send_message(chat_id, reply[:4000])
-except Exception as e:
-    print(f"AI Error: {e}")
-    send_message(chat_id, f"AI အမှား: {str(e)}")
+            completion = client.chat.completions.create(
+                model="google/gemma-2-2b-it",
+                messages=user_conversations[user_id],
+                max_tokens=300,
+                temperature=0.7,
+            )
+            reply = completion.choices[0].message["content"]
+            user_conversations[user_id].append({"role": "assistant", "content": reply})
+            send_message(chat_id, reply[:4000])
+        except Exception as e:
+            print(f"AI Error: {e}")
+            send_message(chat_id, f"AI အမှား: {str(e)}")
     
     return "ok"
 
