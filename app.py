@@ -39,7 +39,9 @@ def webhook():
         user_conversations[user_id] = []
         send_message(chat_id, "စကားဝိုင်းမှတ်ဉာဏ်ကို ရှင်းလင်းလိုက်ပါပြီ။")
     elif text:
-        # AI မေးခွန်း
+        # AI မေးခွsend_message(chat_id, f"ခင်ဗျားပြောတာ: {text}")
+send_message(chat_id, f"ခင်ဗျားပြောတာ: {text}")
+
         if user_id not in user_conversations:
             user_conversations[user_id] = []
         user_conversations[user_id].append({"role": "user", "content": text})
