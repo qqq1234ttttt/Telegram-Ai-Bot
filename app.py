@@ -7,12 +7,11 @@ from huggingface_hub import InferenceClient
 app = Flask(__name__)
 
 TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN")
-HF_API_KEY = os.environ.get("HF_API_KEY")
+HF_API_KEY = os.environ.get("HF_API_KEY") # Token ကို Read ခွင့်နဲ့ ပြန်လုပ်ဖို့ မမေ့ပါနဲ့
 
 bot = Bot(token=TELEGRAM_TOKEN)
-
-# ✅ provider ကို sambanova သုံးမယ်
-client = InferenceClient(provider="sambanova", api_key=HF_API_KEY)
+# ✅ Open-access model အတွက် provider ကို "hf-inference" ပြန်သုံးပါ
+client = InferenceClient(provider="hf-inference", api_key=HF_API_KEY)
 user_conversations = {}
 
 def send_message(chat_id, text):
@@ -31,20 +30,19 @@ def webhook():
     text = update.message.text if update.message else ""
 
     if text == "/start":
-        send_message(chat_id, "မင်္ဂလာပါ။ Hugging Face AI Bot ပါ။")
+        send_message(chat_id, "မင်္ဂလာပါ။ TinyLlama AI Bot ပါ။")
     elif text == "/clear":
         user_conversations[user_id] = []
         send_message(chat_id, "မှတ်ဉာဏ်ရှင်းပြီးပါပြီ။")
     elif text:
         send_message(chat_id, "စဉ်းစားနေပါတယ်...")
-        
         if user_id not in user_conversations:
             user_conversations[user_id] = []
         user_conversations[user_id].append({"role": "user", "content": text})
-        
         try:
+            # ✅ သေချာအလုပ်ဖြစ်မယ့် Open-access Model
             completion = client.chat.completions.create(
-                model="Meta/Llama-3.2-1B",  # ✅ sambanova က support လုပ်တယ်
+                model="TinyLlama/TinyLlama-1.1B-Chat-v1.0",
                 messages=user_conversations[user_id],
                 max_tokens=300,
                 temperature=0.7,
@@ -55,7 +53,6 @@ def webhook():
         except Exception as e:
             print(f"AI Error: {e}")
             send_message(chat_id, f"AI အမှား: {str(e)}")
-    
     return "ok"
 
 @app.route("/")
