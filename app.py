@@ -44,12 +44,13 @@ def webhook():
             user_conversations[user_id] = []
         user_conversations[user_id].append({"role": "user", "content": text})
         try:
-            completion = client.chat.completions.create(
-                model="microsoft/Phi-3-mini-4k-instruct",
-                messages=user_conversations[user_id],
-                max_tokens=500,
-                temperature=0.7,
-            )
+            # ဒီတစ်ခါ မော်ဒယ်အမည်ကို တိတိကျကျ ထည့်ထားပါတယ်
+completion = client.chat.completions.create(
+    model="meta-llama/Llama-3.2-1B-Instruct",  # ဒါက Free + သေချာအလုပ်လုပ်တယ်
+    messages=user_conversations[user_id],
+    max_tokens=500,
+    temperature=0.7,
+)
             reply = completion.choices[0].message["content"]
             user_conversations[user_id].append({"role": "assistant", "content": reply})
             if len(reply) > 4000:
