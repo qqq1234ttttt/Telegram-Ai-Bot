@@ -13,8 +13,6 @@ print(f"TELEGRAM_TOKEN exists: {bool(TELEGRAM_TOKEN)}")
 print(f"HF_API_KEY exists: {bool(HF_API_KEY)}")
 
 bot = Bot(token=TELEGRAM_TOKEN)
-
-# provider ကို "together" သို့ ပြောင်းပါ
 client = InferenceClient(provider="together", api_key=HF_API_KEY)
 user_conversations = {}
 
@@ -34,7 +32,7 @@ def webhook():
     text = update.message.text if update.message else ""
 
     if text == "/start":
-        send_message(chat_id, "မင်္ဂလာပါ။ Hugging Face AI Bot ပါ။ (Gemma model)")
+        send_message(chat_id, "မင်္ဂလာပါ။ Hugging Face AI Bot ပါ။")
     elif text == "/clear":
         user_conversations[user_id] = []
         send_message(chat_id, "မှတ်ဉာဏ်ရှင်းပြီးပါပြီ။")
@@ -46,18 +44,18 @@ def webhook():
         user_conversations[user_id].append({"role": "user", "content": text})
         
         try:
-        completion = client.chat.completions.create(
-        model="meta-llama/Llama-3.2-1B-Instruct",  # ဒီ model ကိုသုံးပါ
-        messages=user_conversations[user_id],
-        max_tokens=300,
-        temperature=0.7,
-    )
-    reply = completion.choices[0].message["content"]
-    user_conversations[user_id].append({"role": "assistant", "content": reply})
-    send_message(chat_id, reply[:4000])
-except Exception as e:
-    print(f"AI Error: {e}")
-    send_message(chat_id, f"AI အမှား: {str(e)}")
+            completion = client.chat.completions.create(
+                model="meta-llama/Llama-3.2-1B-Instruct",
+                messages=user_conversations[user_id],
+                max_tokens=300,
+                temperature=0.7,
+            )
+            reply = completion.choices[0].message["content"]
+            user_conversations[user_id].append({"role": "assistant", "content": reply})
+            send_message(chat_id, reply[:4000])
+        except Exception as e:
+            print(f"AI Error: {e}")
+            send_message(chat_id, f"AI အမှား: {str(e)}")
     
     return "ok"
 
