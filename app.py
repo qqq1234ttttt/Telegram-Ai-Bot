@@ -13,7 +13,9 @@ print(f"TELEGRAM_TOKEN exists: {bool(TELEGRAM_TOKEN)}")
 print(f"HF_API_KEY exists: {bool(HF_API_KEY)}")
 
 bot = Bot(token=TELEGRAM_TOKEN)
-client = InferenceClient(provider="hf-inference", api_key=HF_API_KEY)
+
+# provider ကို "together" သို့ ပြောင်းပါ
+client = InferenceClient(provider="together", api_key=HF_API_KEY)
 user_conversations = {}
 
 def send_message(chat_id, text):
@@ -32,7 +34,7 @@ def webhook():
     text = update.message.text if update.message else ""
 
     if text == "/start":
-        send_message(chat_id, "မင်္ဂလာပါ။ Hugging Face AI Bot ပါ။")
+        send_message(chat_id, "မင်္ဂလာပါ။ Hugging Face AI Bot ပါ။ (Gemma model)")
     elif text == "/clear":
         user_conversations[user_id] = []
         send_message(chat_id, "မှတ်ဉာဏ်ရှင်းပြီးပါပြီ။")
