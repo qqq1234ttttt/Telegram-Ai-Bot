@@ -1,18 +1,18 @@
 import os
-import requests
-print(f"HF_API_KEY exists: {bool(HF_API_KEY)}")
-print(f"First 10 chars: {HF_API_KEY[:10] if HF_API_KEY else 'None'}")
-import os
-print("HF_API_KEY =", os.environ.get("HF_API_KEY"))
 from flask import Flask, request
 from telegram import Bot, Update
-from huggingface_hub import InferenceClient
 
 app = Flask(__name__)
 
 TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN")
-HF_API_KEY = os.environ.get("HF_API_KEY")
+HF_API_KEY = os.environ.get("HF_API_KEY")   # ✅ ဒါမှန်တယ်
 
+# စစ်ဆေးရန် (optional)
+print(f"TELEGRAM_TOKEN exists: {bool(TELEGRAM_TOKEN)}")
+print(f"HF_API_KEY exists: {bool(HF_API_KEY)}")
+print(f"HF_API_KEY first 10 chars: {HF_API_KEY[:10] if HF_API_KEY else 'None'}")
+
+# ပြီးရင် ကျန်တဲ့ code တွေ ဆက်ရေးပါ...
 bot = Bot(token=TELEGRAM_TOKEN)
 client = InferenceClient(provider="hf-inference", api_key=HF_API_KEY)
 user_conversations = {}
