@@ -1,5 +1,7 @@
 import os
 import requests
+print(f"HF_API_KEY exists: {bool(HF_API_KEY)}")
+print(f"First 10 chars: {HF_API_KEY[:10] if HF_API_KEY else 'None'}")
 from flask import Flask, request
 from telegram import Bot, Update
 from huggingface_hub import InferenceClient
