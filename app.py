@@ -1,8 +1,8 @@
 import os
 import json
+import asyncio
 from flask import Flask, request
-from telegram import Update, Bot
-from telegram.ext import Application, CommandHandler, MessageHandler, filters
+from telegram import Bot, Update
 from huggingface_hub import InferenceClient
 
 app = Flask(__name__)
@@ -10,60 +10,69 @@ app = Flask(__name__)
 TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN")
 HF_API_KEY = os.environ.get("HF_API_KEY")
 
-# Bot Application ကို token နဲ့ တည်ဆောက်မယ် (v20+ ပုံစံ)
 bot = Bot(token=TELEGRAM_TOKEN)
-application = Application.builder().token(TELEGRAM_TOKEN).build()
-
-# Hugging Face client
 client = InferenceClient(provider="hf-inference", api_key=HF_API_KEY)
+
+# သုံးစွဲသူ conversation memory
 user_conversations = {}
 
-# --- Command handlers (async ဖြစ်အောင်ရေးရမယ်) ---
-async def start(update: Update, context):
-    await update.message.reply_text("မင်္ဂလာပါ။ Hugging Face AI Bot ပါ။")
+# ---------- Command handlers ----------
+def handle_start(chat_id):
+    asyncio.create_task(bot.send_message(chat_id=chat_id, text="မင်္ဂလာပါ။ Hugging Face AI Bot ပါ။"))
 
-async def help_cmd(update: Update, context):
-    await update.message.reply_text("/start - စတင်ရန်\n/clear - မှတ်ဉာဏ်ရှင်းရန်")
+def handle_help(chat_id):
+    asyncio.create_task(bot.send_message(chat_id=chat_id, text="/start - စတင်ရန်\n/clear - မှတ်ဉာဏ်ရှင်းရန်"))
 
-async def clear(update: Update, context):
-    uid = update.effective_chat.id
-    user_conversations[uid] = []
-    await update.message.reply_text("စကားဝိုင်းမှတ်ဉာဏ်ကို ရှင်းလင်းလိုက်ပါပြီ။")
+def handle_clear(chat_id, user_id):
+    user_conversations[user_id] = []
+    asyncio.create_task(bot.send_message(chat_id=chat_id, text="စကားဝိုင်းမှတ်ဉာဏ်ကို ရှင်းလင်းလိုက်ပါပြီ။"))
 
-async def ask_ai(update: Update, context):
-    uid = update.effective_chat.id
-    text = update.message.text
-    if uid not in user_conversations:
-        user_conversations[uid] = []
-    user_conversations[uid].append({"role": "user", "content": text})
+def handle_ai(chat_id, user_id, text):
+    # Conversation memory ထဲထည့်
+    if user_id not in user_conversations:
+        user_conversations[user_id] = []
+    user_conversations[user_id].append({"role": "user", "content": text})
+    
     try:
+        # Hugging Face API ခေါ်ပါ (synchronous, ဒါပေမယ့် thread ထဲထည့်စရာမလို၊ ခဏလောက်ကြာနိုင်)
         completion = client.chat.completions.create(
             model="microsoft/Phi-3-mini-4k-instruct",
-            messages=user_conversations[uid],
+            messages=user_conversations[user_id],
             max_tokens=500,
             temperature=0.7,
         )
         reply = completion.choices[0].message["content"]
-        user_conversations[uid].append({"role": "assistant", "content": reply})
+        user_conversations[user_id].append({"role": "assistant", "content": reply})
         if len(reply) > 4000:
             reply = reply[:4000] + "..."
-        await update.message.reply_text(reply)
+        asyncio.create_task(bot.send_message(chat_id=chat_id, text=reply))
     except Exception as e:
-        await update.message.reply_text("AI ခေါ်ရာမှာ အမှားဖြစ်သွားပါတယ်။")
+        print(f"AI error: {e}")
+        asyncio.create_task(bot.send_message(chat_id=chat_id, text="AI ခေါ်ရာမှာ အမှားဖြစ်သွားပါတယ်။ ခဏကြာမှ ပြန်စမ်းပါ။"))
 
-# Handler များ application ထဲထည့်ပါ
-application.add_handler(CommandHandler("start", start))
-application.add_handler(CommandHandler("help", help_cmd))
-application.add_handler(CommandHandler("clear", clear))
-application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, ask_ai))
-
-# --- Flask webhook endpoint ---
+# ---------- Webhook endpoint ----------
 @app.route(f"/{TELEGRAM_TOKEN}", methods=["POST"])
-async def webhook():
-    # Flask က async ကို သဘာဝအတိုင်း မလုပ်နိုင်လို့ ဒီလိုသုံးတယ်
-    req_json = request.get_json(force=True)
-    update = Update.de_json(req_json, bot)
-    await application.process_update(update)
+def webhook():
+    req = request.get_json(force=True)
+    update = Update.de_json(req, bot)
+    chat_id = update.effective_chat.id
+    user_id = update.effective_user.id
+    message_text = update.message.text if update.message else None
+    
+    if not message_text:
+        return "ok"
+    
+    # Command detection
+    if message_text.startswith("/start"):
+        handle_start(chat_id)
+    elif message_text.startswith("/help"):
+        handle_help(chat_id)
+    elif message_text.startswith("/clear"):
+        handle_clear(chat_id, user_id)
+    else:
+        # AI အဖြေ (command မဟုတ်တဲ့စာ)
+        handle_ai(chat_id, user_id, message_text)
+    
     return "ok"
 
 @app.route("/")
@@ -72,9 +81,7 @@ def home():
 
 @app.route("/set_webhook")
 def set_webhook():
-    webhook_url = f"https://{os.environ.get('RENDER_EXTERNAL_NAME', 'your-app.onrender.com')}/{TELEGRAM_TOKEN}"
-    # Render မှာ လက်ရှိ hostname ရဖို့ request.host ကိုသုံးပါ
-    # ဒါမှမဟုတ် RENDER_EXTERNAL_URL environment variable ကိုသုံးနိုင်ပါတယ်
+    # Render ရဲ့ public URL ကို ယူမယ်
     external_url = os.environ.get("RENDER_EXTERNAL_URL")
     if not external_url:
         return "RENDER_EXTERNAL_URL not set", 500
